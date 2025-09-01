@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCQ Practice</title>
+  <style>
+    :root{
+      --bg:#0f172a;/* slate-900 */
+      --card:#111827;/* gray-900 */
+      --text:#e5e7eb;/* gray-200 */
+      --muted:#94a3b8;/* slate-400 */
+      --accent:#22c55e;/* green-500 */
+      --accent-2:#3b82f6;/* blue-500 */
+      --danger:#ef4444;/* red-500 */
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
+      background: radial-gradient(1200px 800px at 10% 10%, #111827, #0b1025 60%, #070b1a);
+      color:var(--text);
+      min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .app{ width:min(980px,100%); }
+    header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;
+    }
+    h1{ font-size: clamp(20px, 3.2vw, 34px); margin:0; letter-spacing:.5px; }
+    .controls{ display:flex; gap:8px; flex-wrap:wrap; }
+    select, button, input[type="number"], input[type="text"]{
+      background: #0b1227; border:1px solid #26314f; color:var(--text);
+      padding:10px 12px; border-radius:12px; outline:none; box-shadow:var(--shadow);
+    }
+    button{ cursor:pointer; transition: .2s transform ease, .2s background ease; }
+    button:hover{ transform: translateY(-1px); }
+    button.primary{ background:linear-gradient(135deg,var(--accent),#16a34a); border:0; font-weight:600; }
+    button.secondary{ background:linear-gradient(135deg,var(--accent-2),#2563eb); border:0; font-weight:600; }
+    button.ghost{ background:transparent; border:1px dashed #334155; }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid #1f2937; border-radius:24px; padding:20px; box-shadow:var(--shadow);
+    }
+    .row{ display:grid; grid-template-columns:1fr; gap:14px; }
+    @media(min-width:720px){ .row{ grid-template-columns: 1.3fr .7fr; } }
+
+    .question-box{ padding:14px 16px; border-radius:18px; background:#0a1022; border:1px solid #1f2a48; }
+    .q-meta{ display:flex; gap:10px; align-items:center; justify-content:space-between; font-size:14px; color:var(--muted); }
+    .q-text{ font-size: clamp(16px, 2.2vw, 22px); line-height:1.4; margin:8px 0 0; }
+
+    .options{ display:grid; gap:10px; margin-top:14px; }
+    .opt{ text-align:left; border-radius:14px; border:1px solid #233054; padding:12px 14px; background:#0c1531; cursor:pointer; transition:.18s;
+      display:flex; gap:10px; align-items:flex-start; }
+    .opt:hover{ background:#0e1938; }
+    .opt.correct{ border-color: #14532d; background: #052e13; }
+    .opt.wrong{ border-color:#3f1f27; background:#2a0c12; }
+    .opt.selected{ outline:2px solid #334155; }
+
+    .footer{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; }
+    .progress{ height:10px; background:#0b1227; border:1px solid #1e2a4a; border-radius:999px; overflow:hidden; }
+    .bar{ height:100%; width:0%; background:linear-gradient(90deg, #22c55e, #3b82f6); transition: width .3s ease; }
+
+    .side{
+      display:grid; gap:12px;
+    }
+    .stat{ background:#0b1227; border:1px solid #243055; border-radius:18px; padding:14px; }
+    .stat h3{ margin:0 0 8px; font-size:16px; color:#cbd5e1; }
+    .stat .num{ font-size:28px; font-weight:700; }
+    .badge{ padding:6px 10px; border-radius:999px; border:1px solid #233054; background:#0b1227; color:#cbd5e1; font-size:12px; }
+
+    .hidden{ display:none !important; }
+
+    .review{ display:grid; gap:12px; margin-top:14px; }
+    .review-item{ background:#0b1227; border:1px solid #233054; border-radius:16px; padding:12px; }
+    .small{ font-size:12px; color:var(--muted); }
+
+    .pill{ padding:6px 10px; border-radius:999px; border:1px solid #334155; background:#0f1a3a; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>MCQ Practice</h1>
+      <div class="controls">
+        <select id="category">
+          <option value="all">All Categories</option>
+        </select>
+        <select id="mode">
+          <option value="practice">Practice Mode</option>
+          <option value="timed">Timed (60s/q)</option>
+        </select>
+        <button id="startBtn" class="primary">Start</button>
+        <button id="resetBtn" class="ghost">Reset</button>
+      </div>
+    </header>
+
+    <!-- 🔹 User Details Form -->
+    <div id="userForm" class="card">
+      <h2 style="margin:0 0 12px">Enter Your Details</h2>
+      <input type="text" id="userName" placeholder="Your Name" style="width:100%;margin-bottom:8px">
+      <input type="text" id="userEnroll" placeholder="Enrollment Number" style="width:100%;margin-bottom:8px">
+      <button id="submitInfo" class="primary" style="width:100%">Continue to Quiz</button>
+    </div>
+
+    <div class="row hidden" id="quizContainer">
+      <div class="card">
+        <div id="quizView">
+          <div class="q-meta">
+            <span id="qCounter" class="badge">Question 1 / 1</span>
+            <span id="timer" class="badge">⏱ 60s</span>
+          </div>
+          <div class="question-box">
+            <div id="qText" class="q-text">Press Start to begin.</div>
+            <div id="options" class="options"></div>
+          </div>
+          <div class="footer">
+            <div class="progress" style="flex:1"><div id="bar" class="bar"></div></div>
+            <div style="display:flex; gap:8px">
+              <button id="skipBtn" class="ghost">Skip</button>
+              <button id="nextBtn" class="secondary">Next ▶</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="resultView" class="hidden">
+          <h2 style="margin:0 0 6px">Your Result</h2>
+          <div class="small" id="summaryLine">—</div>
+          <!-- 🔹 Show User Details -->
+          <div class="small" id="userDetails"></div>
+          <div class="review" id="review"></div>
+          <div style="display:flex; gap:8px; margin-top:8px">
+            <button id="retryBtn" class="primary">Retry</button>
+            <button id="shuffleBtn" class="ghost">Shuffle & Retry</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="side">
+        <div class="stat">
+          <h3>Score</h3>
+          <div class="num" id="score">0</div>
+          <div class="small">Highest: <span id="high">0</span></div>
+        </div>
+        <div class="stat">
+          <h3>Session</h3>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <span class="pill" id="pillCorrect">✔ 0 correct</span>
+            <span class="pill" id="pillWrong">✖ 0 wrong</span>
+            <span class="pill" id="pillSkipped">⏭ 0 skipped</span>
+          </div>
+        </div>
+        <div class="stat">
+          <h3>How to add questions</h3>
+          <div class="small">Open this file → find <code>QUESTIONS</code> → add more like the examples.</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // Questions
+       const QUESTIONS = [
+  { id:1, cat:"DWDM", q:"A Data Warehouse is:", options:["OLTP system","Subject-oriented, integrated, time-variant, non-volatile collection of data","Operational database","Distributed file system"], a:1 },
+  { id:2, cat:"DWDM", q:"The top-down approach for data warehouse design was proposed by:", options:["Inmon","Kimball","Codd","Chen"], a:0 },
+  { id:3, cat:"DWDM", q:"The bottom-up approach was suggested by:", options:["Inmon","Kimball","Date","Gray"], a:1 },
+  { id:4, cat:"DWDM", q:"Metadata in a Data Warehouse is used to:", options:["Store user queries","Store data about data","Compress data","Clean data"], a:1 },
+  { id:5, cat:"DWDM", q:"Which is a subset of Data Warehouse?", options:["OLTP","Data Mart","Metadata","Database view"], a:1 },
+  { id:6, cat:"DWDM", q:"ETL stands for:", options:["Extract, Transform, Load","Evaluate, Test, Learn","Execute, Transfer, Load","Extract, Transfer, Learn"], a:0 },
+  { id:7, cat:"DWDM", q:"Which layer stores cleaned and transformed data before loading?", options:["Data mart","Metadata repository","Staging area","Fact table"], a:2 },
+  { id:8, cat:"DWDM", q:"Which is an example of fact data?", options:["Customer name","Product ID","Sales amount","Address"], a:2 },
+  { id:9, cat:"DWDM", q:"Dimensional modeling is commonly used in:", options:["OLTP","Data Warehousing","File systems","RDBMS only"], a:1 },
+  { id:10, cat:"DWDM", q:"A star schema consists of:", options:["Only fact tables","Only dimension tables","Fact table and dimension tables","None"], a:2 },
+
+  { id:11, cat:"DWDM", q:"OLAP provides:", options:["Real-time updates","Multidimensional analysis of data","Transaction processing","Encryption"], a:1 },
+  { id:12, cat:"DWDM", q:"Which OLAP is faster for large data?", options:["MOLAP","ROLAP","HOLAP","DOLAP"], a:0 },
+  { id:13, cat:"DWDM", q:"ROLAP stands for:", options:["Relational OLAP","Reduced OLAP","Random OLAP","Regional OLAP"], a:0 },
+  { id:14, cat:"DWDM", q:"Drill-down in OLAP means:", options:["More summarized data","More detailed data","Rotating data axes","Data cleaning"], a:1 },
+  { id:15, cat:"DWDM", q:"Roll-up in OLAP means:", options:["Aggregation","Detailing","Normalization","Transformation"], a:0 },
+  { id:16, cat:"DWDM", q:"Pivoting in OLAP is also called:", options:["Slice","Dice","Rotation","Drill-through"], a:2 },
+  { id:17, cat:"DWDM", q:"Data Mining is also known as:", options:["Knowledge Discovery in Databases (KDD)","Data cleaning","Data warehousing","Data selection"], a:0 },
+  { id:18, cat:"DWDM", q:"Which is not a step in KDD?", options:["Selection","Transformation","Mining","Deadlock detection"], a:3 },
+  { id:19, cat:"DWDM", q:"Which is a data mining task?", options:["Classification","Regression","Clustering","All of these"], a:3 },
+  { id:20, cat:"DWDM", q:"OLTP systems are mainly used for:", options:["Analysis","Transactions","Historical data","Dimensional modeling"], a:1 },
+
+  { id:21, cat:"DWDM", q:"Data cleaning handles:", options:["Missing values","Noisy data","Inconsistencies","All of these"], a:3 },
+  { id:22, cat:"DWDM", q:"Data integration combines data from:", options:["Multiple sources","Same table","One column","Single database only"], a:0 },
+  { id:23, cat:"DWDM", q:"Normalization in data preprocessing makes attributes:", options:["Scaled uniformly","Redundant","Noisy","Discrete"], a:0 },
+  { id:24, cat:"DWDM", q:"Which is not a data reduction technique?", options:["Cube aggregation","Dimensionality reduction","Wavelet transform","Indexing"], a:3 },
+  { id:25, cat:"DWDM", q:"Binning is used for:", options:["Data smoothing","Data selection","Data integration","Data replication"], a:0 },
+  { id:26, cat:"DWDM", q:"Apriori algorithm is used in:", options:["Clustering","Classification","Association rule mining","Regression"], a:2 },
+  { id:27, cat:"DWDM", q:"Support in association rules indicates:", options:["Probability of both X and Y","Probability of X","Probability of Y","None"], a:0 },
+  { id:28, cat:"DWDM", q:"Confidence in association rules indicates:", options:["P(X ∪ Y)","P(Y|X)","P(X|Y)","Lift"], a:1 },
+  { id:29, cat:"DWDM", q:"Lift > 1 indicates:", options:["Negative correlation","Positive correlation","Independence","Noise"], a:1 },
+  { id:30, cat:"DWDM", q:"FP-growth is an alternative to:", options:["K-means","Apriori","Naïve Bayes","Decision tree"], a:1 },
+
+  { id:31, cat:"DWDM", q:"Classification belongs to:", options:["Supervised learning","Unsupervised learning","Reinforcement learning","Clustering"], a:0 },
+  { id:32, cat:"DWDM", q:"Clustering belongs to:", options:["Supervised learning","Unsupervised learning","Semi-supervised learning","Reinforcement learning"], a:1 },
+  { id:33, cat:"DWDM", q:"Decision trees use:", options:["Entropy","Information gain","Gini index","All of these"], a:3 },
+  { id:34, cat:"DWDM", q:"Naïve Bayes is based on:", options:["Conditional probability","Neural weights","Distance measures","Regression lines"], a:0 },
+  { id:35, cat:"DWDM", q:"Which of the following is a lazy learner?", options:["KNN","Decision tree","Naïve Bayes","Regression"], a:0 },
+  { id:36, cat:"DWDM", q:"Regression is used for predicting:", options:["Continuous values","Categorical values","Clusters","Associations"], a:0 },
+  { id:37, cat:"DWDM", q:"Overfitting in classification means:", options:["Poor performance on training data","Poor performance on test data","High bias","Low variance"], a:1 },
+  { id:38, cat:"DWDM", q:"Pruning in decision trees is done to:", options:["Reduce overfitting","Increase tree depth","Add attributes","Merge nodes"], a:0 },
+  { id:39, cat:"DWDM", q:"Logistic regression is used for:", options:["Classification","Clustering","Association rules","Data cleaning"], a:0 },
+  { id:40, cat:"DWDM", q:"ROC curve is used to evaluate:", options:["Clustering","Classification models","Data cleaning","ETL"], a:1 },
+
+  { id:41, cat:"DWDM", q:"K-means clustering requires:", options:["Number of clusters in advance","Entropy calculation","Regression lines","Decision boundaries"], a:0 },
+  { id:42, cat:"DWDM", q:"K in K-means represents:", options:["Number of clusters","Number of tuples","Number of attributes","Number of iterations"], a:0 },
+  { id:43, cat:"DWDM", q:"Hierarchical clustering can be:", options:["Agglomerative or divisive","Top-down only","Bottom-up only","Linear only"], a:0 },
+  { id:44, cat:"DWDM", q:"DBSCAN is useful for:", options:["Clustering with noise and arbitrary shapes","Linear regression","Naïve Bayes","Decision trees"], a:0 },
+  { id:45, cat:"DWDM", q:"Silhouette coefficient measures:", options:["Cluster quality","Classification accuracy","Regression error","Confidence of rules"], a:0 },
+  { id:46, cat:"DWDM", q:"Outlier detection identifies:", options:["Frequent patterns","Rare or abnormal data points","Clusters","Attributes"], a:1 },
+  { id:47, cat:"DWDM", q:"Which clustering method does not require K?", options:["K-means","DBSCAN","Partitioning methods","None"], a:1 },
+  { id:48, cat:"DWDM", q:"Dendrogram is used in:", options:["Hierarchical clustering","K-means","Regression","Decision trees"], a:0 },
+  { id:49, cat:"DWDM", q:"Which clustering algorithm can handle noise well?", options:["K-means","DBSCAN","KNN","Apriori"], a:1 },
+  { id:50, cat:"DWDM", q:"Advanced topic in DWDM related to patterns over time is:", options:["Temporal data mining","Regression","Association rules","OLTP"], a:0 }
+];
+
+
+    // State
+    let pool = [...QUESTIONS];
+    let order = [];
+    let idx = 0;
+    let score = 0;
+    let correct = 0, wrong = 0, skipped = 0;
+    let selected = null;
+    let userAnswers = [];
+    let mode = 'practice';
+    let timeLeft = 60; let timerId = null;
+    let studentName = ""; let studentEnroll = "";
+
+    // Elements
+    const qText = document.getElementById('qText');
+    const optionsEl = document.getElementById('options');
+    const qCounter = document.getElementById('qCounter');
+    const timerEl = document.getElementById('timer');
+    const bar = document.getElementById('bar');
+    const scoreEl = document.getElementById('score');
+    const highEl = document.getElementById('high');
+    const pillC = document.getElementById('pillCorrect');
+    const pillW = document.getElementById('pillWrong');
+    const pillS = document.getElementById('pillSkipped');
+    const quizView = document.getElementById('quizView');
+    const resultView = document.getElementById('resultView');
+    const reviewEl = document.getElementById('review');
+    const summaryLine = document.getElementById('summaryLine');
+    const userDetails = document.getElementById('userDetails');
+
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const skipBtn = document.getElementById('skipBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const retryBtn = document.getElementById('retryBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const catSel = document.getElementById('category');
+    const modeSel = document.getElementById('mode');
+
+    const userForm = document.getElementById('userForm');
+    const quizContainer = document.getElementById('quizContainer');
+    const submitInfo = document.getElementById('submitInfo');
+    const userName = document.getElementById('userName');
+    const userEnroll = document.getElementById('userEnroll');
+
+    // Categories
+    function buildCategories(){
+      const cats = Array.from(new Set(QUESTIONS.map(q=>q.cat))).sort();
+      cats.forEach(c=>{
+        const opt = document.createElement('option');
+        opt.value=c; opt.textContent=c; catSel.appendChild(opt);
+      });
+    }
+
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    function applyFilter(){
+      const cat = catSel.value;
+      pool = QUESTIONS.filter(q => cat==='all' ? true : q.cat===cat);
+      order = shuffle(pool.map((_,i)=>i));
+      idx = 0; score=0; correct=0; wrong=0; skipped=0; selected=null; userAnswers=[];
+      updateStats();
+    }
+
+    function start(){
+      mode = modeSel.value;
+      applyFilter();
+      quizView.classList.remove('hidden');
+      resultView.classList.add('hidden');
+      render();
+      if(mode==='timed') startTimer(); else stopTimer(true);
+    }
+
+    function render(){
+      if(pool.length===0){
+        qText.textContent = 'No questions in this category yet.';
+        optionsEl.innerHTML = '';
+        qCounter.textContent = `Question 0 / 0`;
+        bar.style.width = '0%';
+        return;
+      }
+      const q = pool[ order[idx] ];
+      qCounter.textContent = `Question ${idx+1} / ${pool.length}`;
+      qText.textContent = q.q;
+      optionsEl.innerHTML = '';
+      q.options.forEach((text, i)=>{
+        const btn = document.createElement('button');
+        btn.className = 'opt';
+        btn.innerHTML = `<span class="badge">${String.fromCharCode(65+i)}</span> <div>${text}</div>`;
+        btn.onclick = ()=> select(i);
+        optionsEl.appendChild(btn);
+      });
+      selected = null;
+      nextBtn.disabled = true;
+      bar.style.width = `${((idx)/pool.length)*100}%`;
+      timerEl.style.visibility = (mode==='timed') ? 'visible' : 'hidden';
+      if(mode==='timed') resetTimer();
+    }
+
+    function select(i){
+      selected = i;
+      Array.from(optionsEl.children).forEach((b,ix)=>{
+        b.classList.toggle('selected', ix===i);
+      });
+      nextBtn.disabled = false;
+    }
+
+    function lockOptions(correctIndex){
+      Array.from(optionsEl.children).forEach((b,ix)=>{
+        b.disabled = true;
+        if(ix===correctIndex) b.classList.add('correct');
+        if(selected!==null && ix===selected && selected!==correctIndex) b.classList.add('wrong');
+      });
+    }
+
+    function next(skip=false){
+      const q = pool[ order[idx] ];
+      const chosen = selected;
+
+      if(skip || chosen===null){
+        skipped++;
+        userAnswers.push({id:q.id, chosen:null, correct:q.a});
+      } else if(chosen===q.a){
+        score += 1; correct++;
+        userAnswers.push({id:q.id, chosen, correct:q.a});
+      } else {
+        wrong++; userAnswers.push({id:q.id, chosen, correct:q.a});
+      }
+
+      updateStats();
+      lockOptions(q.a);
+
+      setTimeout(()=>{
+        idx++;
+        if(idx>=pool.length){ end(); }
+        else render();
+      }, 450);
+    }
+
+    function end(){
+      stopTimer(true);
+      quizView.classList.add('hidden');
+      resultView.classList.remove('hidden');
+      const pct = Math.round((score/pool.length)*100);
+      summaryLine.textContent = `${score}/${pool.length} correct • ${pct}% • ${skipped} skipped`;
+      userDetails.textContent = `Name: ${studentName} | Enrollment: ${studentEnroll}`;
+      saveHigh(score);
+      buildReview();
+    }
+
+    function buildReview(){
+      reviewEl.innerHTML = '';
+      userAnswers.forEach((ua, i)=>{
+        const q = pool[ order[i] ];
+        const div = document.createElement('div');
+        const got = ua.chosen===q.a;
+        div.className = 'review-item';
+        div.innerHTML = `
+          <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
+            <strong>${i+1}. ${q.q}</strong>
+            <span class="badge" style="border-color:${got?'#14532d':'#3f1f27'}">${got?'✔ Correct':'✖ Wrong'}</span>
+          </div>
+          <div class="small" style="margin-top:6px">Your answer: ${ua.chosen===null?'<em>Skipped</em>': escapeHtml(q.options[ua.chosen])}</div>
+          <div class="small">Correct answer: <strong>${escapeHtml(q.options[q.a])}</strong></div>
+          <div class="small">Category: ${q.cat}</div>
+        `;
+        reviewEl.appendChild(div);
+      });
+    }
+
+        function updateStats(){
+      scoreEl.textContent = score;
+      pillC.textContent = `✔ ${correct} correct`;
+      pillW.textContent = `✖ ${wrong} wrong`;
+      pillS.textContent = `⏭ ${skipped} skipped`;
+      const best = loadHigh();
+      if(score > best){
+        saveHigh(score);
+        highEl.textContent = score;
+      } else {
+        highEl.textContent = best;
+      }
+    }
+
+    // Timer functions
+    function resetTimer(){
+      stopTimer(true);
+      timeLeft = 60;
+      timerEl.textContent = `⏱ ${timeLeft}s`;
+      timerId = setInterval(()=>{
+        timeLeft--;
+        timerEl.textContent = `⏱ ${timeLeft}s`;
+        if(timeLeft<=0){
+          clearInterval(timerId);
+          next(true);
+        }
+      },1000);
+    }
+    function startTimer(){ resetTimer(); }
+    function stopTimer(clear=false){
+      if(timerId){ clearInterval(timerId); timerId=null; }
+      if(clear) timerEl.textContent='';
+    }
+
+    // High Score save/load
+    function saveHigh(val){
+      localStorage.setItem('mcq_high', val);
+    }
+    function loadHigh(){
+      return parseInt(localStorage.getItem('mcq_high')||'0');
+    }
+
+    // Escape HTML
+    function escapeHtml(str){
+      return str.replace(/[&<>"']/g, m=>(
+        {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+      ));
+    }
+
+    // Event handlers
+    startBtn.addEventListener('click', ()=>{
+      userForm.classList.remove('hidden');
+      quizContainer.classList.add('hidden');
+    });
+    submitInfo.addEventListener('click', ()=>{
+      if(!userName.value.trim() || !userEnroll.value.trim()){
+        alert("Please enter both Name and Enrollment Number");
+        return;
+      }
+      studentName = userName.value.trim();
+      studentEnroll = userEnroll.value.trim();
+      userForm.classList.add('hidden');
+      quizContainer.classList.remove('hidden');
+      start();
+    });
+
+    resetBtn.addEventListener('click', ()=> location.reload());
+    skipBtn.addEventListener('click', ()=> next(true));
+    nextBtn.addEventListener('click', ()=> next(false));
+    retryBtn.addEventListener('click', ()=> start());
+    shuffleBtn.addEventListener('click', ()=>{
+      shuffle(pool);
+      start();
+    });
+
+    // Init
+    buildCategories();
+    highEl.textContent = loadHigh();
+  </script>
+</body>
+</html>
